@@ -53,15 +53,15 @@ function ProductCard({ product, sizes, colors, setSizes, setColors, onAdd, focus
   const category = categories.find((item) => item.id === product.categoryId)?.name;
   return (
     <article className="product-card">
-      <div className="product-photo"><Placeholder label="FOTO REAL EM BREVE" /><span className="demo-stamp">DEMONSTRAÇÃO</span></div>
+      <div className="product-photo">{product.image ? <Image className="product-image" src={product.image} alt={product.name} fill sizes="(max-width: 760px) 76vw, 278px" /> : <Placeholder label="FOTO REAL EM BREVE" />}</div>
       <div className="product-info">
         <p className="eyebrow product-category">{category}</p>
         <h3>{product.name}</h3>
-        <p className="product-price">{money(product.price)} <span>· fictício</span></p>
-        <div className="variant-row">
+        <p className="product-price">{money(product.price)}</p>
+        {product.sizes?.length || product.colors?.length ? <div className="variant-row">
           {product.sizes?.length ? <label><span>Tamanho</span><select tabIndex={focusable ? 0 : -1} value={sizes[product.id] || ""} onChange={(event) => setSizes((current) => ({ ...current, [product.id]: event.target.value }))}><option value="">Selecione</option>{product.sizes.map((size) => <option key={size}>{size}</option>)}</select></label> : null}
           {product.colors?.length ? <label><span>Cor</span><select tabIndex={focusable ? 0 : -1} value={colors[product.id] || ""} onChange={(event) => setColors((current) => ({ ...current, [product.id]: event.target.value }))}><option value="">Selecione</option>{product.colors.map((color) => <option key={color}>{color}</option>)}</select></label> : null}
-        </div>
+        </div> : null}
         <button className="button button-dark add-button" type="button" tabIndex={focusable ? 0 : -1} onClick={() => onAdd(product)}>ADICIONAR AO CARRINHO <Icon name="plus" size={16} /></button>
       </div>
     </article>
@@ -122,6 +122,7 @@ export default function Home() {
     const matchesSearch = `${product.name} ${categoryName}`.toLocaleLowerCase("pt-BR").includes(search.trim().toLocaleLowerCase("pt-BR"));
     return matchesCategory && matchesSearch;
   }), [activeCategory, search]);
+  const selectedCategory = categories.find((category) => category.id === activeCategory);
   const cartCount = cart.reduce((count, line) => count + line.quantity, 0);
   const subtotal = cart.reduce((sum, line) => sum + (products.find((product) => product.id === line.productId)?.price || 0) * line.quantity, 0);
 
@@ -163,7 +164,7 @@ export default function Home() {
       const options = [line.size && `Tamanho: ${line.size}`, line.color && `Cor: ${line.color}`].filter(Boolean).join(" | ");
       return `- ${product.name}\n  Quantidade: ${line.quantity}${options ? `\n  ${options}` : ""}\n  Valor unitário: ${money(product.price)}\n  Subtotal: ${money(product.price * line.quantity)}`;
     }).join("\n\n");
-    const message = `Olá! Gostaria de fazer um pedido na ${store.name}.\n\nMeu pedido:\n\n${detail}\n\nTotal estimado: ${money(subtotal)}\n\nObservações: ${observations.trim() || "(escreva aqui, se desejar)"}\n\nGostaria de confirmar a disponibilidade e as condições de compra. Os valores são ilustrativos e precisam ser confirmados.`;
+    const message = `Olá! Gostaria de fazer um pedido na ${store.name}.\n\nMeu pedido:\n\n${detail}\n\nTotal estimado: ${money(subtotal)}\n\nObservações: ${observations.trim() || "(escreva aqui, se desejar)"}\n\nGostaria de confirmar a disponibilidade e as condições de compra.`;
     window.open(`${store.whatsapp}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   };
 
@@ -208,7 +209,7 @@ export default function Home() {
         </section>
 
         <section id="categorias" className="section categories-section page-width">
-          <div className="section-heading" data-reveal><div><p className="eyebrow">ENCONTRE O SEU RITMO</p><h2>EXPLORE POR<br className="mobile-break" /> CATEGORIA</h2></div><p className="heading-note">Cinco espaços preparados<br />para receber a coleção.</p></div>
+          <div className="section-heading" data-reveal><div><p className="eyebrow">ENCONTRE O SEU RITMO</p><h2>EXPLORE POR<br className="mobile-break" /> CATEGORIA</h2></div><p className="heading-note">Seis categorias prontas<br />para receber as fotos reais.</p></div>
           <div className="category-grid">
             {categories.map((category) => <button className="category-card" key={category.id} onClick={() => selectCategory(category.id)} data-reveal>
               <div className="category-image"><Placeholder label="FOTO EM BREVE" /><span className="category-number">{category.number}</span></div>
@@ -219,7 +220,7 @@ export default function Home() {
 
         <section id="colecao" className="section collection-section">
           <div className="page-width">
-            <div className="section-heading collection-heading" data-reveal><div><p className="eyebrow">ITENS DE DEMONSTRAÇÃO · EDITÁVEIS</p><h2>COLEÇÃO <span>PULSO°</span></h2><p className="section-intro">Produtos, fotos e valores são fictícios. Use os controles para experimentar o carrinho.</p></div>
+            <div className="section-heading collection-heading" data-reveal><div><p className="eyebrow">CATÁLOGO PULSO° · 19 PRODUTOS</p><h2>{selectedCategory ? selectedCategory.name : <>COLEÇÃO <span>PULSO°</span></>}</h2><p className="section-intro">Fotos reais serão adicionadas em breve. Selecione uma categoria para filtrar a vitrine.</p></div>
               <div className="collection-controls"><div className="collection-filter"><button className={activeCategory === "all" ? "selected" : ""} onClick={() => setActiveCategory("all")}>Tudo</button>{categories.map((category) => <button className={activeCategory === category.id ? "selected" : ""} key={category.id} onClick={() => setActiveCategory(category.id)}>{category.name}</button>)}</div><button className="text-link" onClick={() => scrollTo("colecao")}>VER VITRINE <Icon name="arrow" size={15} /></button></div>
             </div>
             {filteredProducts.length ? <div className="carousel-window" data-reveal>
@@ -228,7 +229,7 @@ export default function Home() {
                 <div className="product-set">{filteredProducts.map((product) => <ProductCard key={product.id} product={product} sizes={sizes} colors={colors} setSizes={setSizes} setColors={setColors} onAdd={addToCart} />)}</div>
               </div>
             </div> : <div className="no-products" data-reveal><Placeholder label="NENHUM PRODUTO NESTA BUSCA" /><p>Não encontramos itens com esse filtro.</p><button className="text-link" onClick={() => { setSearch(""); setActiveCategory("all"); }}>LIMPAR FILTROS <Icon name="arrow" size={15} /></button></div>}
-            <div className="demo-note"><span className="demo-dot" /> Demonstração: produtos, opções e preços ilustrativos, sem disponibilidade comercial.</div>
+            <div className="demo-note"><span className="demo-dot" /> Os preços seguem o catálogo informado. Confirme disponibilidade e condições pelo WhatsApp.</div>
           </div>
         </section>
 
@@ -255,7 +256,7 @@ export default function Home() {
           <div className="footer-column"><p className="eyebrow">CONECTE-SE</p><a href={store.instagram} target="_blank" rel="noopener noreferrer">Instagram <Icon name="external" size={13} /></a><a href={store.whatsapp} target="_blank" rel="noopener noreferrer">Atendimento pelo WhatsApp <Icon name="external" size={13} /></a></div>
           <div className="footer-column"><p className="eyebrow">INFORMAÇÕES</p><span>Privacidade — em preparação</span><span>Trocas e devoluções — em preparação</span></div>
         </div>
-        <div className="footer-bottom page-width"><span>© {new Date().getFullYear()} PULSO°. Todos os direitos reservados.</span><span>DEMONSTRAÇÃO VISUAL · PRODUTOS E PREÇOS FICTÍCIOS</span><a href="#inicio">VOLTAR AO TOPO ↑</a></div>
+        <div className="footer-bottom page-width"><span>© {new Date().getFullYear()} PULSO°. Todos os direitos reservados.</span><span>DEMONSTRAÇÃO VISUAL · CONFIRME A DISPONIBILIDADE PELO WHATSAPP</span><a href="#inicio">VOLTAR AO TOPO ↑</a></div>
       </footer>
 
       {notice ? <div className="toast" role="status"><Icon name="check" size={17} />{notice}</div> : null}
@@ -263,19 +264,20 @@ export default function Home() {
       {cartOpen ? <div className="drawer-layer" onMouseDown={(event) => { if (event.target === event.currentTarget) setCartOpen(false); }}>
         <aside className="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="cart-title">
           <div className="drawer-head"><div><p className="eyebrow">SUA SELEÇÃO</p><h2 id="cart-title">Carrinho <span>({cartCount})</span></h2></div><button className="icon-button" onClick={() => setCartOpen(false)} aria-label="Fechar carrinho"><Icon name="close" /></button></div>
-          <p className="drawer-demo-note">Carrinho de demonstração. Os valores são fictícios.</p>
+          <p className="drawer-demo-note">Pedido de demonstração. Confirme disponibilidade e condições com a loja.</p>
           {cart.length ? <>
             <div className="cart-items">{cart.map((line) => {
               const product = products.find((item) => item.id === line.productId);
               if (!product) return null;
               const key = lineKey(line);
-              return <article className="cart-item" key={key}><div className="cart-thumb"><Icon name="image" size={22} /></div><div className="cart-item-info"><p className="eyebrow">{categories.find((category) => category.id === product.categoryId)?.name}</p><h3>{product.name}</h3><p>{[line.size && `Tam. ${line.size}`, line.color].filter(Boolean).join(" · ")}</p><strong>{money(product.price)} <small>· fictício</small></strong><div className="quantity-control"><button onClick={() => changeQuantity(key, -1)} aria-label={`Diminuir quantidade de ${product.name}`}><Icon name="minus" size={14} /></button><span>{line.quantity}</span><button onClick={() => changeQuantity(key, 1)} aria-label={`Aumentar quantidade de ${product.name}`}><Icon name="plus" size={14} /></button></div></div><button className="remove-item" onClick={() => removeLine(key)} aria-label={`Remover ${product.name}`}><Icon name="trash" size={17} /></button></article>;
+              const options = [line.size && `Tam. ${line.size}`, line.color].filter(Boolean).join(" · ");
+              return <article className="cart-item" key={key}><div className="cart-thumb"><Icon name="image" size={22} /></div><div className="cart-item-info"><p className="eyebrow">{categories.find((category) => category.id === product.categoryId)?.name}</p><h3>{product.name}</h3>{options ? <p>{options}</p> : null}<strong>{money(product.price * line.quantity)} <small>subtotal</small></strong><p className="cart-unit-price">Unitário: {money(product.price)}</p><div className="quantity-control"><button onClick={() => changeQuantity(key, -1)} aria-label={`Diminuir quantidade de ${product.name}`}><Icon name="minus" size={14} /></button><span>{line.quantity}</span><button onClick={() => changeQuantity(key, 1)} aria-label={`Aumentar quantidade de ${product.name}`}><Icon name="plus" size={14} /></button></div></div><button className="remove-item" onClick={() => removeLine(key)} aria-label={`Remover ${product.name}`}><Icon name="trash" size={17} /></button></article>;
             })}</div>
             <label className="observations-label" htmlFor="order-notes">Observações para a loja</label><textarea id="order-notes" value={observations} onChange={(event) => setObservations(event.target.value)} placeholder="Escreva aqui, se desejar" rows={3} />
-            <div className="subtotal-row"><span>Total estimado</span><strong>{money(subtotal)}</strong></div><p className="subtotal-caption">Valores ilustrativos; confirme a disponibilidade e as condições com a loja.</p>
+            <div className="subtotal-row"><span>Total estimado</span><strong>{money(subtotal)}</strong></div><p className="subtotal-caption">Confirme disponibilidade e condições com a loja pelo WhatsApp.</p>
             <button className="button button-dark checkout-button" onClick={checkout}>FINALIZAR PEDIDO PELO WHATSAPP <Icon name="arrow" size={17} /></button>
             <button className="continue-button" onClick={() => setCartOpen(false)}>CONTINUAR EXPLORANDO</button>
-          </> : <div className="empty-cart"><div className="empty-bag"><Icon name="bag" size={28} /></div><h3>Seu carrinho está vazio.</h3><p>Explore as categorias e adicione um item de demonstração para experimentar.</p><button className="button button-dark" onClick={() => { setCartOpen(false); scrollTo("colecao"); }}>EXPLORAR COLEÇÃO <Icon name="arrow" size={16} /></button></div>}
+          </> : <div className="empty-cart"><div className="empty-bag"><Icon name="bag" size={28} /></div><h3>Seu carrinho está vazio.</h3><p>Escolha uma peça da coleção para adicioná-la ao carrinho.</p><button className="button button-dark" onClick={() => { setCartOpen(false); scrollTo("colecao"); }}>EXPLORAR COLEÇÃO <Icon name="arrow" size={16} /></button></div>}
         </aside>
       </div> : null}
     </>

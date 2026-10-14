@@ -3,6 +3,7 @@ export type Product = {
   categoryId: string;
   name: string;
   price: number;
+  image?: string;
   sizes?: string[];
   colors?: string[];
 };
@@ -14,18 +15,33 @@ export const store = {
 };
 
 export const categories = [
-  { id: "camisetas", name: "Camisetas", number: "01" },
-  { id: "moletons", name: "Moletons", number: "02" },
-  { id: "calcas", name: "Calças", number: "03" },
-  { id: "jaquetas", name: "Jaquetas", number: "04" },
-  { id: "acessorios", name: "Acessórios", number: "05" },
+  { id: "calcas", name: "Calças", number: "01" },
+  { id: "bermudas-shorts", name: "Bermudas e shorts", number: "02" },
+  { id: "camisetas-camisas", name: "Camisetas e camisas", number: "03" },
+  { id: "polos", name: "Polos", number: "04" },
+  { id: "moletons-frio", name: "Moletons e roupas de frio", number: "05" },
+  { id: "roupas-intimas", name: "Roupas íntimas", number: "06" },
 ];
 
-// Preços e itens abaixo são dados fictícios para testar a demonstração.
+// Quando as fotos reais estiverem disponíveis, coloque-as em public/images/products/<id>.jpg e informe o caminho em image.
 export const products: Product[] = [
-  { id: "demo-01", categoryId: "camisetas", name: "Produto de demonstração 01", price: 89.9, sizes: ["P", "M", "G", "GG"], colors: ["Preto", "Branco"] },
-  { id: "demo-02", categoryId: "moletons", name: "Produto de demonstração 02", price: 149.9, sizes: ["P", "M", "G", "GG"], colors: ["Preto", "Cinza"] },
-  { id: "demo-03", categoryId: "calcas", name: "Produto de demonstração 03", price: 169.9, sizes: ["38", "40", "42", "44"], colors: ["Preto", "Cinza"] },
-  { id: "demo-04", categoryId: "jaquetas", name: "Produto de demonstração 04", price: 219.9, sizes: ["P", "M", "G", "GG"], colors: ["Preto", "Verde"] },
-  { id: "demo-05", categoryId: "acessorios", name: "Produto de demonstração 05", price: 49.9, colors: ["Preto", "Branco"] },
+  { id: "calca-jeans", categoryId: "calcas", name: "Calça jeans", price: 105 },
+  { id: "calca-social", categoryId: "calcas", name: "Calça social", price: 105 },
+  { id: "calca-feminina", categoryId: "calcas", name: "Calça feminina", price: 105 },
+  { id: "calca-de-moletom", categoryId: "calcas", name: "Calça de moletom", price: 65 },
+  { id: "bermuda-de-sarja", categoryId: "bermudas-shorts", name: "Bermuda de sarja", price: 75 },
+  { id: "short-de-sarja", categoryId: "bermudas-shorts", name: "Short de sarja", price: 65 },
+  { id: "bermuda-tecnologica", categoryId: "bermudas-shorts", name: "Bermuda tecnológica", price: 59 },
+  { id: "bermuda-acetinada", categoryId: "bermudas-shorts", name: "Bermuda acetinada", price: 85 },
+  { id: "camiseta-do-brasil", categoryId: "camisetas-camisas", name: "Camiseta do Brasil", price: 130 },
+  { id: "camiseta-suedini", categoryId: "camisetas-camisas", name: "Camiseta Suedini", price: 57 },
+  { id: "camiseta-peruana", categoryId: "camisetas-camisas", name: "Camiseta peruana", price: 55 },
+  { id: "camiseta-wafers", categoryId: "camisetas-camisas", name: "Camiseta Wafers", price: 59 },
+  { id: "camiseta-plus-size", categoryId: "camisetas-camisas", name: "Camiseta plus size", price: 65 },
+  { id: "polo-piquet-duplo", categoryId: "polos", name: "Polo piquet duplo", price: 75 },
+  { id: "polo-peruana", categoryId: "polos", name: "Polo peruana", price: 70 },
+  { id: "bobojaco", categoryId: "moletons-frio", name: "Bobojaco", price: 130 },
+  { id: "sueter", categoryId: "moletons-frio", name: "Suéter", price: 95 },
+  { id: "moletom-de-tres-cabos", categoryId: "moletons-frio", name: "Moletom de três cabos", price: 105 },
+  { id: "cuecas", categoryId: "roupas-intimas", name: "Cuecas", price: 33 },
 ];
