@@ -32,6 +32,9 @@ function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
 
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 const lineKey = (line: CartLine) => `${line.productId}|${line.size}|${line.color}`;
+const wholesaleThreshold = 4;
+const wholesaleDiscount = 5;
+const discountedPrice = (price: number) => Math.max(0, price - wholesaleDiscount);
 
 function Mark({ size = 36 }: { size?: number }) {
   return <Image className="brand-mark" src="/images/pulso-mark.jpg" alt="" width={size} height={size} priority />;
@@ -58,6 +61,7 @@ function ProductCard({ product, sizes, colors, setSizes, setColors, onAdd, focus
         <p className="eyebrow product-category">{category}</p>
         <h3>{product.name}</h3>
         <p className="product-price">{money(product.price)}</p>
+        <p className="wholesale-hint">Compre 4 peças ou mais e pague R$ 5,00 a menos por peça.</p>
         {product.sizes?.length || product.colors?.length ? <div className="variant-row">
           {product.sizes?.length ? <label><span>Tamanho</span><select tabIndex={focusable ? 0 : -1} value={sizes[product.id] || ""} onChange={(event) => setSizes((current) => ({ ...current, [product.id]: event.target.value }))}><option value="">Selecione</option>{product.sizes.map((size) => <option key={size}>{size}</option>)}</select></label> : null}
           {product.colors?.length ? <label><span>Cor</span><select tabIndex={focusable ? 0 : -1} value={colors[product.id] || ""} onChange={(event) => setColors((current) => ({ ...current, [product.id]: event.target.value }))}><option value="">Selecione</option>{product.colors.map((color) => <option key={color}>{color}</option>)}</select></label> : null}
@@ -124,7 +128,13 @@ export default function Home() {
   }), [activeCategory, search]);
   const selectedCategory = categories.find((category) => category.id === activeCategory);
   const cartCount = cart.reduce((count, line) => count + line.quantity, 0);
-  const subtotal = cart.reduce((sum, line) => sum + (products.find((product) => product.id === line.productId)?.price || 0) * line.quantity, 0);
+  const wholesaleActive = cartCount >= wholesaleThreshold;
+  const originalSubtotal = cart.reduce((sum, line) => sum + (products.find((product) => product.id === line.productId)?.price || 0) * line.quantity, 0);
+  const totalSavings = wholesaleActive ? cart.reduce((sum, line) => {
+    const product = products.find((item) => item.id === line.productId);
+    return sum + Math.min(wholesaleDiscount, product?.price || 0) * line.quantity;
+  }, 0) : 0;
+  const subtotal = originalSubtotal - totalSavings;
 
   const scrollTo = (id: string) => {
     setMenuOpen(false);
@@ -162,9 +172,10 @@ export default function Home() {
     const detail = cart.map((line) => {
       const product = products.find((item) => item.id === line.productId)!;
       const options = [line.size && `Tamanho: ${line.size}`, line.color && `Cor: ${line.color}`].filter(Boolean).join(" | ");
-      return `- ${product.name}\n  Quantidade: ${line.quantity}${options ? `\n  ${options}` : ""}\n  Valor unitário: ${money(product.price)}\n  Subtotal: ${money(product.price * line.quantity)}`;
+      const unit = wholesaleActive ? discountedPrice(product.price) : product.price;
+      return `- ${product.name}\n  Quantidade: ${line.quantity}${options ? `\n  ${options}` : ""}\n  Preço original por unidade: ${money(product.price)}\n  Preço por unidade com desconto: ${money(unit)}\n  Subtotal: ${money(unit * line.quantity)}`;
     }).join("\n\n");
-    const message = `Olá! Gostaria de fazer um pedido na ${store.name}.\n\nMeu pedido:\n\n${detail}\n\nTotal estimado: ${money(subtotal)}\n\nObservações: ${observations.trim() || "(escreva aqui, se desejar)"}\n\nGostaria de confirmar a disponibilidade e as condições de compra.`;
+    const message = `Olá! Gostaria de fazer um pedido na ${store.name}.\n\nMeu pedido:\n\n${detail}\n\nTotal original: ${money(originalSubtotal)}\nDesconto de atacado: ${money(totalSavings)}\nValor final: ${money(subtotal)}\n\nObservações: ${observations.trim() || "(escreva aqui, se desejar)"}\n\nGostaria de confirmar a disponibilidade e as condições de compra.`;
     window.open(`${store.whatsapp}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   };
 
@@ -192,7 +203,7 @@ export default function Home() {
       <main>
         <section id="inicio" className="hero-section">
           <div className="hero-image" />
-          <div className="hero-content page-width" data-reveal>
+          <div className="hero-content page-width">
             <p className="eyebrow hero-eyebrow">ESTILO. IDENTIDADE. MOVIMENTO.</p>
             <h1>VISTA SUA<br /><span>ESSÊNCIA.</span></h1>
             <p className="hero-copy">Mais do que roupas.<br />Uma expressão de quem você é.</p>
@@ -271,10 +282,12 @@ export default function Home() {
               if (!product) return null;
               const key = lineKey(line);
               const options = [line.size && `Tam. ${line.size}`, line.color].filter(Boolean).join(" · ");
-              return <article className="cart-item" key={key}><div className="cart-thumb"><Icon name="image" size={22} /></div><div className="cart-item-info"><p className="eyebrow">{categories.find((category) => category.id === product.categoryId)?.name}</p><h3>{product.name}</h3>{options ? <p>{options}</p> : null}<strong>{money(product.price * line.quantity)} <small>subtotal</small></strong><p className="cart-unit-price">Unitário: {money(product.price)}</p><div className="quantity-control"><button onClick={() => changeQuantity(key, -1)} aria-label={`Diminuir quantidade de ${product.name}`}><Icon name="minus" size={14} /></button><span>{line.quantity}</span><button onClick={() => changeQuantity(key, 1)} aria-label={`Aumentar quantidade de ${product.name}`}><Icon name="plus" size={14} /></button></div></div><button className="remove-item" onClick={() => removeLine(key)} aria-label={`Remover ${product.name}`}><Icon name="trash" size={17} /></button></article>;
+              const unit = wholesaleActive ? discountedPrice(product.price) : product.price;
+              return <article className="cart-item" key={key}><div className="cart-thumb"><Icon name="image" size={22} /></div><div className="cart-item-info"><p className="eyebrow">{categories.find((category) => category.id === product.categoryId)?.name}</p><h3>{product.name}</h3>{options ? <p>{options}</p> : null}{wholesaleActive ? <del className="cart-original-subtotal">{money(product.price * line.quantity)}</del> : null}<strong>{money(unit * line.quantity)} <small>subtotal</small></strong><p className="cart-unit-price">Unitário: {wholesaleActive ? <><del>{money(product.price)}</del> <b>{money(unit)}</b> com desconto</> : money(product.price)}</p><div className="quantity-control"><button onClick={() => changeQuantity(key, -1)} aria-label={`Diminuir quantidade de ${product.name}`}><Icon name="minus" size={14} /></button><span>{line.quantity}</span><button onClick={() => changeQuantity(key, 1)} aria-label={`Aumentar quantidade de ${product.name}`}><Icon name="plus" size={14} /></button></div></div><button className="remove-item" onClick={() => removeLine(key)} aria-label={`Remover ${product.name}`}><Icon name="trash" size={17} /></button></article>;
             })}</div>
+            <p className={`wholesale-status ${wholesaleActive ? "is-active" : ""}`}>{wholesaleActive ? "Preço de atacado ativado! Você economiza R$ 5,00 por peça." : `A partir de ${wholesaleThreshold} peças, você economiza R$ 5,00 por unidade.`}</p>
             <label className="observations-label" htmlFor="order-notes">Observações para a loja</label><textarea id="order-notes" value={observations} onChange={(event) => setObservations(event.target.value)} placeholder="Escreva aqui, se desejar" rows={3} />
-            <div className="subtotal-row"><span>Total estimado</span><strong>{money(subtotal)}</strong></div><p className="subtotal-caption">Confirme disponibilidade e condições com a loja pelo WhatsApp.</p>
+            {wholesaleActive ? <div className="subtotal-row original-total"><span>Total original</span><del>{money(originalSubtotal)}</del></div> : null}<div className="subtotal-row savings-row"><span>Economia no atacado</span><strong>{money(totalSavings)}</strong></div><div className="subtotal-row"><span>Total estimado</span><strong>{money(subtotal)}</strong></div><p className="subtotal-caption">Confirme disponibilidade e condições com a loja pelo WhatsApp.</p>
             <button className="button button-dark checkout-button" onClick={checkout}>FINALIZAR PEDIDO PELO WHATSAPP <Icon name="arrow" size={17} /></button>
             <button className="continue-button" onClick={() => setCartOpen(false)}>CONTINUAR EXPLORANDO</button>
           </> : <div className="empty-cart"><div className="empty-bag"><Icon name="bag" size={28} /></div><h3>Seu carrinho está vazio.</h3><p>Escolha uma peça da coleção para adicioná-la ao carrinho.</p><button className="button button-dark" onClick={() => { setCartOpen(false); scrollTo("colecao"); }}>EXPLORAR COLEÇÃO <Icon name="arrow" size={16} /></button></div>}
