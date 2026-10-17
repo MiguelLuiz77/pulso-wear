@@ -260,7 +260,7 @@ export default function Home() {
 
         <section id="colecao" className="section collection-section">
           <div className="page-width">
-            <div className="section-heading collection-heading" data-reveal><div><p className="eyebrow">CATÁLOGO PULSO° · 19 PRODUTOS</p><h2>{selectedCategory ? selectedCategory.name : <>COLEÇÃO <span>PULSO°</span></>}</h2><p className="section-intro">Use as setas para ver as fotos de cada peça ou selecione uma categoria para filtrar a vitrine.</p></div>
+            <div className="section-heading collection-heading" data-reveal><div><p className="eyebrow">CATÁLOGO PULSO° · 18 PRODUTOS</p><h2>{selectedCategory ? selectedCategory.name : <>COLEÇÃO <span>PULSO°</span></>}</h2><p className="section-intro">Use as setas para ver as fotos de cada peça ou selecione uma categoria para filtrar a vitrine.</p></div>
               <div className="collection-controls"><div className="collection-filter"><button className={activeCategory === "all" ? "selected" : ""} onClick={() => setActiveCategory("all")}>Tudo</button>{categories.map((category) => <button className={activeCategory === category.id ? "selected" : ""} key={category.id} onClick={() => setActiveCategory(category.id)}>{category.name}</button>)}</div><button className="text-link" onClick={() => scrollTo("colecao")}>VER VITRINE <Icon name="arrow" size={15} /></button></div>
             </div>
             {filteredProducts.length ? <div className="carousel-window" data-reveal>
