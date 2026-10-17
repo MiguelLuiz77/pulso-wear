@@ -35,6 +35,14 @@ const lineKey = (line: CartLine) => `${line.productId}|${line.size}|${line.color
 const wholesaleThreshold = 4;
 const wholesaleDiscount = 5;
 const discountedPrice = (price: number) => Math.max(0, price - wholesaleDiscount);
+const categoryPreviewProducts: Record<string, string> = {
+  calcas: "calca-jeans",
+  "bermudas-shorts": "short-de-sarja",
+  "camisetas-camisas": "camiseta-peruana",
+  polos: "polo-peruana",
+  "moletons-frio": "bobojaco",
+  "roupas-intimas": "cuecas",
+};
 
 function Mark({ size = 36 }: { size?: number }) {
   return <Image className="brand-mark" src="/images/pulso-mark.jpg" alt="" width={size} height={size} priority />;
@@ -44,19 +52,35 @@ function Placeholder({ label = "ESPAÇO RESERVADO PARA FOTO" }: { label?: string
   return <div className="photo-placeholder"><div className="placeholder-icon"><Icon name="image" size={28} /></div><span>{label}</span></div>;
 }
 
-function ProductCard({ product, sizes, colors, setSizes, setColors, onAdd, focusable = true }: {
+function ProductCard({ product, sizes, colors, setSizes, setColors, imageIndices, setImageIndices, onAdd, focusable = true }: {
   product: Product;
   sizes: Record<string, string>;
   colors: Record<string, string>;
   setSizes: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   setColors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  imageIndices: Record<string, number>;
+  setImageIndices: React.Dispatch<React.SetStateAction<Record<string, number>>>;
   onAdd: (product: Product) => void;
   focusable?: boolean;
 }) {
   const category = categories.find((item) => item.id === product.categoryId)?.name;
+  const images = product.images ?? [];
+  const imageIndex = images.length ? (imageIndices[product.id] ?? 0) % images.length : 0;
+  const changeImage = (direction: -1 | 1) => {
+    if (images.length < 2) return;
+    setImageIndices((current) => ({
+      ...current,
+      [product.id]: (imageIndex + direction + images.length) % images.length,
+    }));
+  };
   return (
     <article className="product-card">
-      <div className="product-photo">{product.image ? <Image className="product-image" src={product.image} alt={product.name} fill sizes="(max-width: 760px) 76vw, 278px" /> : <Placeholder label="FOTO REAL EM BREVE" />}</div>
+      <div className="product-photo">{images[imageIndex] ? <Image className="product-image" src={images[imageIndex]} alt={`${product.name}, foto ${imageIndex + 1} de ${images.length}`} fill sizes="(max-width: 760px) 76vw, 278px" /> : <Placeholder label="FOTO REAL EM BREVE" />}</div>
+      <div className="product-gallery-controls" aria-label={`Galeria de ${product.name}`}>
+        <button type="button" className="gallery-previous" aria-label={`Foto anterior de ${product.name}`} tabIndex={focusable ? 0 : -1} disabled={images.length < 2} onClick={() => changeImage(-1)}><Icon name="arrow" size={15} /></button>
+        <span aria-live={focusable ? "polite" : undefined}>{images.length ? `${String(imageIndex + 1).padStart(2, "0")} / ${String(images.length).padStart(2, "0")}` : "FOTO EM BREVE"}</span>
+        <button type="button" className="gallery-next" aria-label={`Próxima foto de ${product.name}`} tabIndex={focusable ? 0 : -1} disabled={images.length < 2} onClick={() => changeImage(1)}><Icon name="arrow" size={15} /></button>
+      </div>
       <div className="product-info">
         <p className="eyebrow product-category">{category}</p>
         <h3>{product.name}</h3>
@@ -82,6 +106,7 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [sizes, setSizes] = useState<Record<string, string>>({});
   const [colors, setColors] = useState<Record<string, string>>({});
+  const [imageIndices, setImageIndices] = useState<Record<string, number>>({});
   const [observations, setObservations] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -214,30 +239,34 @@ export default function Home() {
 
         <section className="benefits" aria-label="Destaques da marca">
           <div className="benefit"><Icon name="spark" /><span><strong>Estilo autêntico</strong><small>A identidade PULSO°</small></span></div>
-          <div className="benefit"><Icon name="layers" /><span><strong>Seleção de peças</strong><small>Conteúdo em preparação</small></span></div>
+          <div className="benefit"><Icon name="layers" /><span><strong>Seleção de peças</strong><small>174 fotos no catálogo</small></span></div>
           <div className="benefit"><Icon name="chat" /><span><strong>Atendimento direto</strong><small>Converse pelo WhatsApp</small></span></div>
           <div className="benefit"><Icon name="headset" /><span><strong>Novidades da marca</strong><small>Acompanhe a PULSO°</small></span></div>
         </section>
 
         <section id="categorias" className="section categories-section page-width">
-          <div className="section-heading" data-reveal><div><p className="eyebrow">ENCONTRE O SEU RITMO</p><h2>EXPLORE POR<br className="mobile-break" /> CATEGORIA</h2></div><p className="heading-note">Seis categorias prontas<br />para receber as fotos reais.</p></div>
+          <div className="section-heading" data-reveal><div><p className="eyebrow">ENCONTRE O SEU RITMO</p><h2>EXPLORE POR<br className="mobile-break" /> CATEGORIA</h2></div><p className="heading-note">Fotos organizadas<br />por categoria e modelo.</p></div>
           <div className="category-grid">
-            {categories.map((category) => <button className="category-card" key={category.id} onClick={() => selectCategory(category.id)} data-reveal>
-              <div className="category-image"><Placeholder label="FOTO EM BREVE" /><span className="category-number">{category.number}</span></div>
-              <div className="category-label"><h3>{category.name}</h3><span>VER CATEGORIA <Icon name="arrow" size={15} /></span></div>
-            </button>)}
+            {categories.map((category) => {
+              const previewProductId = categoryPreviewProducts[category.id];
+              const previewImage = products.find((product) => product.id === previewProductId)?.images?.[0];
+              return <button className="category-card" key={category.id} onClick={() => selectCategory(category.id)} data-reveal>
+                <div className="category-image">{previewImage ? <Image className="category-preview" src={previewImage} alt={`Peça em destaque: ${category.name}`} fill sizes="(max-width: 760px) 47vw, 28vw" /> : <Placeholder label="FOTO EM BREVE" />}<span className="category-number">{category.number}</span></div>
+                <div className="category-label"><h3>{category.name}</h3><span>VER CATEGORIA <Icon name="arrow" size={15} /></span></div>
+              </button>;
+            })}
           </div>
         </section>
 
         <section id="colecao" className="section collection-section">
           <div className="page-width">
-            <div className="section-heading collection-heading" data-reveal><div><p className="eyebrow">CATÁLOGO PULSO° · 19 PRODUTOS</p><h2>{selectedCategory ? selectedCategory.name : <>COLEÇÃO <span>PULSO°</span></>}</h2><p className="section-intro">Fotos reais serão adicionadas em breve. Selecione uma categoria para filtrar a vitrine.</p></div>
+            <div className="section-heading collection-heading" data-reveal><div><p className="eyebrow">CATÁLOGO PULSO° · 19 PRODUTOS</p><h2>{selectedCategory ? selectedCategory.name : <>COLEÇÃO <span>PULSO°</span></>}</h2><p className="section-intro">Use as setas para ver as fotos de cada peça ou selecione uma categoria para filtrar a vitrine.</p></div>
               <div className="collection-controls"><div className="collection-filter"><button className={activeCategory === "all" ? "selected" : ""} onClick={() => setActiveCategory("all")}>Tudo</button>{categories.map((category) => <button className={activeCategory === category.id ? "selected" : ""} key={category.id} onClick={() => setActiveCategory(category.id)}>{category.name}</button>)}</div><button className="text-link" onClick={() => scrollTo("colecao")}>VER VITRINE <Icon name="arrow" size={15} /></button></div>
             </div>
             {filteredProducts.length ? <div className="carousel-window" data-reveal>
               <div className="product-track">
-                <div className="product-set" aria-hidden="true">{filteredProducts.map((product) => <ProductCard key={`copy-${product.id}`} product={product} sizes={sizes} colors={colors} setSizes={setSizes} setColors={setColors} onAdd={addToCart} focusable={false} />)}</div>
-                <div className="product-set">{filteredProducts.map((product) => <ProductCard key={product.id} product={product} sizes={sizes} colors={colors} setSizes={setSizes} setColors={setColors} onAdd={addToCart} />)}</div>
+                <div className="product-set" aria-hidden="true">{filteredProducts.map((product) => <ProductCard key={`copy-${product.id}`} product={product} sizes={sizes} colors={colors} setSizes={setSizes} setColors={setColors} imageIndices={imageIndices} setImageIndices={setImageIndices} onAdd={addToCart} focusable={false} />)}</div>
+                <div className="product-set">{filteredProducts.map((product) => <ProductCard key={product.id} product={product} sizes={sizes} colors={colors} setSizes={setSizes} setColors={setColors} imageIndices={imageIndices} setImageIndices={setImageIndices} onAdd={addToCart} />)}</div>
               </div>
             </div> : <div className="no-products" data-reveal><Placeholder label="NENHUM PRODUTO NESTA BUSCA" /><p>Não encontramos itens com esse filtro.</p><button className="text-link" onClick={() => { setSearch(""); setActiveCategory("all"); }}>LIMPAR FILTROS <Icon name="arrow" size={15} /></button></div>}
             <div className="demo-note"><span className="demo-dot" /> Os preços seguem o catálogo informado. Confirme disponibilidade e condições pelo WhatsApp.</div>
