@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { categories, products, store, type Product } from "@/data/products";
 
-type CartLine = { productId: string; quantity: number; size: string; color: string };
+type CartLine = { productId: string; modelIndex: number; quantity: number; size: string };
 type IconName = "search" | "bag" | "menu" | "close" | "arrow" | "image" | "spark" | "layers" | "chat" | "headset" | "plus" | "minus" | "trash" | "instagram" | "external" | "check";
 
 const iconShapes: Record<IconName, ReactNode> = {
@@ -31,7 +31,10 @@ function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
 }
 
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
-const lineKey = (line: CartLine) => `${line.productId}|${line.size}|${line.color}`;
+const lineKey = (line: CartLine) => `${line.productId}|${line.modelIndex}|${line.size}`;
+const availableSizes = ["P", "M", "G"] as const;
+const modelKey = (productId: string, modelIndex: number) => `${productId}|${modelIndex}`;
+const quantityKey = (productId: string, modelIndex: number, size: string) => `${modelKey(productId, modelIndex)}|${size}`;
 const wholesaleThreshold = 4;
 const wholesaleDiscount = 5;
 const discountedPrice = (price: number) => Math.max(0, price - wholesaleDiscount);
@@ -52,33 +55,33 @@ function Placeholder({ label = "ESPAÇO RESERVADO PARA FOTO" }: { label?: string
   return <div className="photo-placeholder"><div className="placeholder-icon"><Icon name="image" size={28} /></div><span>{label}</span></div>;
 }
 
-function ProductCard({ product, sizes, colors, setSizes, setColors, imageIndices, setImageIndices, onAdd, focusable = true }: {
+function ProductCard({ product, selectedModels, quantities, onSelectModel, onChangeDraftQuantity, onShowAllModels, onAdd, focusable = true }: {
   product: Product;
-  sizes: Record<string, string>;
-  colors: Record<string, string>;
-  setSizes: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-  setColors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-  imageIndices: Record<string, number>;
-  setImageIndices: React.Dispatch<React.SetStateAction<Record<string, number>>>;
+  selectedModels: Record<string, number>;
+  quantities: Record<string, number>;
+  onSelectModel: (product: Product, modelIndex: number) => void;
+  onChangeDraftQuantity: (productId: string, modelIndex: number, size: string, amount: number) => void;
+  onShowAllModels: (product: Product) => void;
   onAdd: (product: Product) => void;
   focusable?: boolean;
 }) {
   const category = categories.find((item) => item.id === product.categoryId)?.name;
   const images = product.images ?? [];
-  const imageIndex = images.length ? (imageIndices[product.id] ?? 0) % images.length : 0;
+  const imageIndex = images.length === 1 ? 0 : (selectedModels[product.id] ?? -1);
+  const displayedImageIndex = imageIndex >= 0 ? imageIndex : 0;
   const changeImage = (direction: -1 | 1) => {
     if (images.length < 2) return;
-    setImageIndices((current) => ({
-      ...current,
-      [product.id]: (imageIndex + direction + images.length) % images.length,
-    }));
+    onSelectModel(product, (displayedImageIndex + direction + images.length) % images.length);
   };
+  const hasModel = imageIndex >= 0;
+  const previewCount = 4;
+  const modelLabel = (index: number) => `Modelo ${String(index + 1).padStart(2, "0")}`;
   return (
     <article className="product-card">
-      <div className="product-photo">{images[imageIndex] ? <Image className="product-image" src={images[imageIndex]} alt={`${product.name}, foto ${imageIndex + 1} de ${images.length}`} fill sizes="(max-width: 760px) 76vw, 278px" /> : <Placeholder label="FOTO REAL EM BREVE" />}</div>
+      <div className="product-photo">{images[displayedImageIndex] ? <Image className="product-image" src={images[displayedImageIndex]} alt={`${product.name}, ${modelLabel(displayedImageIndex)}`} fill sizes="(max-width: 760px) 76vw, 278px" /> : <Placeholder label="FOTO REAL EM BREVE" />}</div>
       <div className="product-gallery-controls" aria-label={`Galeria de ${product.name}`}>
         <button type="button" className="gallery-previous" aria-label={`Foto anterior de ${product.name}`} tabIndex={focusable ? 0 : -1} disabled={images.length < 2} onClick={() => changeImage(-1)}><Icon name="arrow" size={15} /></button>
-        <span aria-live={focusable ? "polite" : undefined}>{images.length ? `${String(imageIndex + 1).padStart(2, "0")} / ${String(images.length).padStart(2, "0")}` : "FOTO EM BREVE"}</span>
+        <span aria-live={focusable ? "polite" : undefined}>{images.length ? `${hasModel ? modelLabel(displayedImageIndex) : "Escolha um modelo"} · ${String(displayedImageIndex + 1).padStart(2, "0")} / ${String(images.length).padStart(2, "0")}` : "FOTO EM BREVE"}</span>
         <button type="button" className="gallery-next" aria-label={`Próxima foto de ${product.name}`} tabIndex={focusable ? 0 : -1} disabled={images.length < 2} onClick={() => changeImage(1)}><Icon name="arrow" size={15} /></button>
       </div>
       <div className="product-info">
@@ -86,10 +89,28 @@ function ProductCard({ product, sizes, colors, setSizes, setColors, imageIndices
         <h3>{product.name}</h3>
         <p className="product-price">{money(product.price)}</p>
         <p className="wholesale-hint">Compre 4 peças ou mais e pague R$ 5,00 a menos por peça.</p>
-        {product.sizes?.length || product.colors?.length ? <div className="variant-row">
-          {product.sizes?.length ? <label><span>Tamanho</span><select tabIndex={focusable ? 0 : -1} value={sizes[product.id] || ""} onChange={(event) => setSizes((current) => ({ ...current, [product.id]: event.target.value }))}><option value="">Selecione</option>{product.sizes.map((size) => <option key={size}>{size}</option>)}</select></label> : null}
-          {product.colors?.length ? <label><span>Cor</span><select tabIndex={focusable ? 0 : -1} value={colors[product.id] || ""} onChange={(event) => setColors((current) => ({ ...current, [product.id]: event.target.value }))}><option value="">Selecione</option>{product.colors.map((color) => <option key={color}>{color}</option>)}</select></label> : null}
-        </div> : null}
+        <div className="model-picker">
+          <div className="model-picker-heading"><span>1. Escolha o modelo</span>{images.length > previewCount ? <button type="button" onClick={() => onShowAllModels(product)} tabIndex={focusable ? 0 : -1}>Ver mais</button> : null}</div>
+          {images.length ? <div className="model-strip" aria-label={`Modelos de ${product.name}`}>
+            {images.slice(0, previewCount).map((src, index) => <button type="button" className={`model-option ${displayedImageIndex === index && hasModel ? "is-selected" : ""}`} key={src} aria-pressed={displayedImageIndex === index && hasModel} aria-label={`Selecionar ${modelLabel(index)} de ${product.name}`} tabIndex={focusable ? 0 : -1} onClick={() => onSelectModel(product, index)}>
+              <span className="model-option-image"><Image src={src} alt="" fill sizes="70px" /></span><span>{modelLabel(index)}</span>
+            </button>)}
+            {!images.length ? <Placeholder label="FOTO REAL EM BREVE" /> : null}
+          </div> : <div className="model-empty"><Placeholder label="FOTO REAL EM BREVE" /></div>}
+        </div>
+        <div className="size-quantity-section">
+          <h4>2. Escolha tamanho e quantidade</h4>
+          {hasModel ? <div className="size-quantity-grid">{availableSizes.map((size) => {
+            const key = quantityKey(product.id, displayedImageIndex, size);
+            const quantity = quantities[key] ?? 0;
+            return <div className="size-quantity" key={size}>
+              <span className="size-label">{size}</span>
+              <button type="button" aria-label={`Diminuir ${size} de ${product.name}`} disabled={quantity === 0} tabIndex={focusable ? 0 : -1} onClick={() => onChangeDraftQuantity(product.id, displayedImageIndex, size, -1)}><Icon name="minus" size={16} /></button>
+              <output aria-label={`${size}, quantidade ${quantity}`}>{quantity}</output>
+              <button type="button" aria-label={`Aumentar ${size} de ${product.name}`} tabIndex={focusable ? 0 : -1} onClick={() => onChangeDraftQuantity(product.id, displayedImageIndex, size, 1)}><Icon name="plus" size={16} /></button>
+            </div>;
+          })}</div> : <p className="choose-model-note">Escolha um modelo.</p>}
+        </div>
         <button className="button button-dark add-button" type="button" tabIndex={focusable ? 0 : -1} onClick={() => onAdd(product)}>ADICIONAR AO CARRINHO <Icon name="plus" size={16} /></button>
       </div>
     </article>
@@ -104,9 +125,9 @@ export default function Home() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
-  const [sizes, setSizes] = useState<Record<string, string>>({});
-  const [colors, setColors] = useState<Record<string, string>>({});
-  const [imageIndices, setImageIndices] = useState<Record<string, number>>({});
+  const [selectedModels, setSelectedModels] = useState<Record<string, number>>({});
+  const [draftQuantities, setDraftQuantities] = useState<Record<string, number>>({});
+  const [modelsDialogProduct, setModelsDialogProduct] = useState<Product | null>(null);
   const [observations, setObservations] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -115,7 +136,7 @@ export default function Home() {
       const saved = JSON.parse(window.localStorage.getItem("pulso-demo-cart") || "[]") as CartLine[];
       const valid = Array.isArray(saved) ? saved.filter((line) => {
         const product = products.find((item) => item.id === line.productId);
-        return product && Number.isInteger(line.quantity) && line.quantity > 0 && (!product.sizes?.length || product.sizes.includes(line.size)) && (!product.colors?.length || product.colors.includes(line.color));
+        return product && Number.isInteger(line.quantity) && line.quantity > 0 && Number.isInteger(line.modelIndex) && line.modelIndex >= 0 && line.modelIndex < (product.images?.length ?? 0) && availableSizes.includes(line.size as typeof availableSizes[number]);
       }) : [];
       setCart(valid);
     } catch { setCart([]); }
@@ -145,6 +166,13 @@ export default function Home() {
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [cartOpen]);
 
+  useEffect(() => {
+    if (!modelsDialogProduct) return;
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setModelsDialogProduct(null); };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [modelsDialogProduct]);
+
   const filteredProducts = useMemo(() => products.filter((product) => {
     const categoryName = categories.find((category) => category.id === product.categoryId)?.name || "";
     const matchesCategory = activeCategory === "all" || product.categoryId === activeCategory;
@@ -172,20 +200,41 @@ export default function Home() {
     scrollTo("colecao");
   };
 
+  const selectModel = (product: Product, modelIndex: number) => {
+    setSelectedModels((current) => ({ ...current, [product.id]: modelIndex }));
+  };
+
+  const changeDraftQuantity = (productId: string, modelIndex: number, size: string, amount: number) => {
+    const key = quantityKey(productId, modelIndex, size);
+    setDraftQuantities((current) => ({ ...current, [key]: Math.max(0, (current[key] ?? 0) + amount) }));
+  };
+
   const addToCart = (product: Product) => {
-    const size = product.sizes?.length ? sizes[product.id] || "" : "";
-    const color = product.colors?.length ? colors[product.id] || "" : "";
-    if ((product.sizes?.length && !product.sizes.includes(size)) || (product.colors?.length && !product.colors.includes(color))) {
-      setNotice(`Escolha ${product.sizes?.length && !size ? "o tamanho" : "a cor"} para continuar.`);
+    const modelIndex = product.images?.length === 1 ? 0 : selectedModels[product.id];
+    if (modelIndex === undefined || modelIndex < 0 || modelIndex >= (product.images?.length ?? 0)) {
+      setNotice("Escolha um modelo para continuar.");
       window.setTimeout(() => setNotice(""), 2800);
       return;
     }
-    const added: CartLine = { productId: product.id, quantity: 1, size, color };
-    setCart((current) => {
-      const existing = current.find((line) => lineKey(line) === lineKey(added));
-      return existing ? current.map((line) => lineKey(line) === lineKey(added) ? { ...line, quantity: line.quantity + 1 } : line) : [...current, added];
+    const additions = availableSizes.flatMap((size) => {
+      const quantity = draftQuantities[quantityKey(product.id, modelIndex, size)] ?? 0;
+      return quantity > 0 ? [{ productId: product.id, modelIndex, quantity, size }] : [];
     });
-    setNotice("Item adicionado ao carrinho.");
+    if (!additions.length) {
+      setNotice("Escolha ao menos uma quantidade para continuar.");
+      window.setTimeout(() => setNotice(""), 2800);
+      return;
+    }
+    setCart((current) => additions.reduce((next, added) => {
+      const existing = next.find((line) => lineKey(line) === lineKey(added));
+      return existing ? next.map((line) => lineKey(line) === lineKey(added) ? { ...line, quantity: line.quantity + added.quantity } : line) : [...next, added];
+    }, current));
+    setDraftQuantities((current) => {
+      const next = { ...current };
+      availableSizes.forEach((size) => { delete next[quantityKey(product.id, modelIndex, size)]; });
+      return next;
+    });
+    setNotice(`${additions.reduce((total, line) => total + line.quantity, 0)} peça(s) adicionada(s) ao carrinho.`);
     window.setTimeout(() => setNotice(""), 2500);
   };
 
@@ -196,11 +245,11 @@ export default function Home() {
     if (!cart.length) return;
     const detail = cart.map((line) => {
       const product = products.find((item) => item.id === line.productId)!;
-      const options = [line.size && `Tamanho: ${line.size}`, line.color && `Cor: ${line.color}`].filter(Boolean).join(" | ");
       const unit = wholesaleActive ? discountedPrice(product.price) : product.price;
-      return `- ${product.name}\n  Quantidade: ${line.quantity}${options ? `\n  ${options}` : ""}\n  Preço original por unidade: ${money(product.price)}\n  Preço por unidade com desconto: ${money(unit)}\n  Subtotal: ${money(unit * line.quantity)}`;
+      const model = `Modelo ${String(line.modelIndex + 1).padStart(2, "0")}`;
+      return `- ${product.name}\n  ${model} · Tamanho: ${line.size}\n  Quantidade: ${line.quantity}\n  Preço original por unidade: ${money(product.price)}\n  Preço por unidade com desconto: ${money(unit)}\n  Subtotal: ${money(unit * line.quantity)}`;
     }).join("\n\n");
-    const message = `Olá! Gostaria de fazer um pedido na ${store.name}.\n\nMeu pedido:\n\n${detail}\n\nTotal original: ${money(originalSubtotal)}\nDesconto de atacado: ${money(totalSavings)}\nValor final: ${money(subtotal)}\n\nObservações: ${observations.trim() || "(escreva aqui, se desejar)"}\n\nGostaria de confirmar a disponibilidade e as condições de compra.`;
+    const message = `Olá! Gostaria de fazer um pedido na ${store.name}.\n\nMeu pedido:\n\n${detail}\n\nQuantidade total: ${cartCount} peça(s)\nSubtotal original: ${money(originalSubtotal)}\nDesconto de atacado: ${money(totalSavings)}\nTotal final: ${money(subtotal)}\n\nObservações: ${observations.trim() || "(escreva aqui, se desejar)"}\n\nGostaria de confirmar a disponibilidade e as condições de compra.`;
     window.open(`${store.whatsapp}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   };
 
@@ -265,8 +314,8 @@ export default function Home() {
             </div>
             {filteredProducts.length ? <div className="carousel-window" data-reveal>
               <div className="product-track">
-                <div className="product-set" aria-hidden="true">{filteredProducts.map((product) => <ProductCard key={`copy-${product.id}`} product={product} sizes={sizes} colors={colors} setSizes={setSizes} setColors={setColors} imageIndices={imageIndices} setImageIndices={setImageIndices} onAdd={addToCart} focusable={false} />)}</div>
-                <div className="product-set">{filteredProducts.map((product) => <ProductCard key={product.id} product={product} sizes={sizes} colors={colors} setSizes={setSizes} setColors={setColors} imageIndices={imageIndices} setImageIndices={setImageIndices} onAdd={addToCart} />)}</div>
+                <div className="product-set" aria-hidden="true">{filteredProducts.map((product) => <ProductCard key={`copy-${product.id}`} product={product} selectedModels={selectedModels} quantities={draftQuantities} onSelectModel={selectModel} onChangeDraftQuantity={changeDraftQuantity} onShowAllModels={setModelsDialogProduct} onAdd={addToCart} focusable={false} />)}</div>
+                <div className="product-set">{filteredProducts.map((product) => <ProductCard key={product.id} product={product} selectedModels={selectedModels} quantities={draftQuantities} onSelectModel={selectModel} onChangeDraftQuantity={changeDraftQuantity} onShowAllModels={setModelsDialogProduct} onAdd={addToCart} />)}</div>
               </div>
             </div> : <div className="no-products" data-reveal><Placeholder label="NENHUM PRODUTO NESTA BUSCA" /><p>Não encontramos itens com esse filtro.</p><button className="text-link" onClick={() => { setSearch(""); setActiveCategory("all"); }}>LIMPAR FILTROS <Icon name="arrow" size={15} /></button></div>}
             <div className="demo-note"><span className="demo-dot" /> Os preços seguem o catálogo informado. Confirme disponibilidade e condições pelo WhatsApp.</div>
@@ -299,6 +348,16 @@ export default function Home() {
         <div className="footer-bottom page-width"><span>© {new Date().getFullYear()} PULSO°. Todos os direitos reservados.</span><span>DEMONSTRAÇÃO VISUAL · CONFIRME A DISPONIBILIDADE PELO WHATSAPP</span><a href="#inicio">VOLTAR AO TOPO ↑</a></div>
       </footer>
 
+      {modelsDialogProduct ? <div className="models-dialog-layer" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setModelsDialogProduct(null); }}>
+        <section className="models-dialog" role="dialog" aria-modal="true" aria-labelledby="models-dialog-title">
+          <div className="models-dialog-head"><div><p className="eyebrow">SELEÇÃO DE FOTOS</p><h2 id="models-dialog-title">Modelos · {modelsDialogProduct.name}</h2></div><button className="icon-button" type="button" aria-label="Fechar modelos" onClick={() => setModelsDialogProduct(null)}><Icon name="close" /></button></div>
+          <p className="models-dialog-note">Escolha a foto que representa a peça desejada.</p>
+          <div className="models-dialog-grid">{(modelsDialogProduct.images ?? []).map((src, index) => <button type="button" className={`model-option ${selectedModels[modelsDialogProduct.id] === index ? "is-selected" : ""}`} key={src} aria-pressed={selectedModels[modelsDialogProduct.id] === index} onClick={() => { selectModel(modelsDialogProduct, index); setModelsDialogProduct(null); }}>
+            <span className="model-option-image"><Image src={src} alt="" fill sizes="(max-width: 760px) 35vw, 150px" /></span><span>Modelo {String(index + 1).padStart(2, "0")}</span>
+          </button>)}</div>
+        </section>
+      </div> : null}
+
       {notice ? <div className="toast" role="status"><Icon name="check" size={17} />{notice}</div> : null}
 
       {cartOpen ? <div className="drawer-layer" onMouseDown={(event) => { if (event.target === event.currentTarget) setCartOpen(false); }}>
@@ -310,13 +369,14 @@ export default function Home() {
               const product = products.find((item) => item.id === line.productId);
               if (!product) return null;
               const key = lineKey(line);
-              const options = [line.size && `Tam. ${line.size}`, line.color].filter(Boolean).join(" · ");
+              const options = [`Modelo ${String(line.modelIndex + 1).padStart(2, "0")}`, `Tam. ${line.size}`].join(" · ");
               const unit = wholesaleActive ? discountedPrice(product.price) : product.price;
-              return <article className="cart-item" key={key}><div className="cart-thumb"><Icon name="image" size={22} /></div><div className="cart-item-info"><p className="eyebrow">{categories.find((category) => category.id === product.categoryId)?.name}</p><h3>{product.name}</h3>{options ? <p>{options}</p> : null}{wholesaleActive ? <del className="cart-original-subtotal">{money(product.price * line.quantity)}</del> : null}<strong>{money(unit * line.quantity)} <small>subtotal</small></strong><p className="cart-unit-price">Unitário: {wholesaleActive ? <><del>{money(product.price)}</del> <b>{money(unit)}</b> com desconto</> : money(product.price)}</p><div className="quantity-control"><button onClick={() => changeQuantity(key, -1)} aria-label={`Diminuir quantidade de ${product.name}`}><Icon name="minus" size={14} /></button><span>{line.quantity}</span><button onClick={() => changeQuantity(key, 1)} aria-label={`Aumentar quantidade de ${product.name}`}><Icon name="plus" size={14} /></button></div></div><button className="remove-item" onClick={() => removeLine(key)} aria-label={`Remover ${product.name}`}><Icon name="trash" size={17} /></button></article>;
+              const selectedImage = product.images?.[line.modelIndex];
+              return <article className="cart-item" key={key}><div className="cart-thumb">{selectedImage ? <Image src={selectedImage} alt={`${product.name}, ${options}`} fill sizes="76px" /> : <Icon name="image" size={22} />}</div><div className="cart-item-info"><p className="eyebrow">{categories.find((category) => category.id === product.categoryId)?.name}</p><h3>{product.name}</h3><p>{options}</p>{wholesaleActive ? <del className="cart-original-subtotal">{money(product.price * line.quantity)}</del> : null}<strong>{money(unit * line.quantity)} <small>subtotal</small></strong><p className="cart-unit-price">Unitário: {wholesaleActive ? <><del>{money(product.price)}</del> <b>{money(unit)}</b> com desconto</> : money(product.price)}</p><div className="quantity-control"><button onClick={() => changeQuantity(key, -1)} aria-label={`Diminuir quantidade de ${product.name}, ${options}`}><Icon name="minus" size={14} /></button><span>{line.quantity}</span><button onClick={() => changeQuantity(key, 1)} aria-label={`Aumentar quantidade de ${product.name}, ${options}`}><Icon name="plus" size={14} /></button></div></div><button className="remove-item" onClick={() => removeLine(key)} aria-label={`Remover ${product.name}, ${options}`}><Icon name="trash" size={17} /></button></article>;
             })}</div>
             <p className={`wholesale-status ${wholesaleActive ? "is-active" : ""}`}>{wholesaleActive ? "Preço de atacado ativado! Você economiza R$ 5,00 por peça." : `A partir de ${wholesaleThreshold} peças, você economiza R$ 5,00 por unidade.`}</p>
             <label className="observations-label" htmlFor="order-notes">Observações para a loja</label><textarea id="order-notes" value={observations} onChange={(event) => setObservations(event.target.value)} placeholder="Escreva aqui, se desejar" rows={3} />
-            {wholesaleActive ? <div className="subtotal-row original-total"><span>Total original</span><del>{money(originalSubtotal)}</del></div> : null}<div className="subtotal-row savings-row"><span>Economia no atacado</span><strong>{money(totalSavings)}</strong></div><div className="subtotal-row"><span>Total estimado</span><strong>{money(subtotal)}</strong></div><p className="subtotal-caption">Confirme disponibilidade e condições com a loja pelo WhatsApp.</p>
+            <div className="subtotal-row"><span>Subtotal original</span><strong>{money(originalSubtotal)}</strong></div><div className="subtotal-row pieces-row"><span>Quantidade total</span><strong>{cartCount} peça(s)</strong></div><div className="subtotal-row savings-row"><span>Desconto aplicado</span><strong>{money(totalSavings)}</strong></div><div className="subtotal-row final-total"><span>Total final</span><strong>{money(subtotal)}</strong></div><p className="subtotal-caption">Confirme disponibilidade e condições com a loja pelo WhatsApp.</p>
             <button className="button button-dark checkout-button" onClick={checkout}>FINALIZAR PEDIDO PELO WHATSAPP <Icon name="arrow" size={17} /></button>
             <button className="continue-button" onClick={() => setCartOpen(false)}>CONTINUAR EXPLORANDO</button>
           </> : <div className="empty-cart"><div className="empty-bag"><Icon name="bag" size={28} /></div><h3>Seu carrinho está vazio.</h3><p>Escolha uma peça da coleção para adicioná-la ao carrinho.</p><button className="button button-dark" onClick={() => { setCartOpen(false); scrollTo("colecao"); }}>EXPLORAR COLEÇÃO <Icon name="arrow" size={16} /></button></div>}
