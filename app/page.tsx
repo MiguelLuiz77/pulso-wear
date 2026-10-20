@@ -32,7 +32,8 @@ function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
 
 const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 const lineKey = (line: CartLine) => `${line.productId}|${line.modelIndex}|${line.size}`;
-const availableSizes = ["P", "M", "G"] as const;
+const defaultSizes = ["P", "M", "G"] as const;
+const sizesFor = (product: Product) => product.sizes ?? defaultSizes;
 const modelKey = (productId: string, modelIndex: number) => `${productId}|${modelIndex}`;
 const quantityKey = (productId: string, modelIndex: number, size: string) => `${modelKey(productId, modelIndex)}|${size}`;
 const wholesaleThreshold = 4;
@@ -100,7 +101,7 @@ function ProductCard({ product, selectedModels, quantities, onSelectModel, onCha
         </div>
         <div className="size-quantity-section">
           <h4>2. Escolha tamanho e quantidade</h4>
-          {hasModel ? <div className="size-quantity-grid">{availableSizes.map((size) => {
+          {hasModel ? <div className="size-quantity-grid">{sizesFor(product).map((size) => {
             const key = quantityKey(product.id, displayedImageIndex, size);
             const quantity = quantities[key] ?? 0;
             return <div className="size-quantity" key={size}>
@@ -136,7 +137,7 @@ export default function Home() {
       const saved = JSON.parse(window.localStorage.getItem("pulso-demo-cart") || "[]") as CartLine[];
       const valid = Array.isArray(saved) ? saved.filter((line) => {
         const product = products.find((item) => item.id === line.productId);
-        return product && Number.isInteger(line.quantity) && line.quantity > 0 && Number.isInteger(line.modelIndex) && line.modelIndex >= 0 && line.modelIndex < (product.images?.length ?? 0) && availableSizes.includes(line.size as typeof availableSizes[number]);
+        return product && Number.isInteger(line.quantity) && line.quantity > 0 && Number.isInteger(line.modelIndex) && line.modelIndex >= 0 && line.modelIndex < (product.images?.length ?? 0) && sizesFor(product).some((size) => size === line.size);
       }) : [];
       setCart(valid);
     } catch { setCart([]); }
@@ -216,7 +217,8 @@ export default function Home() {
       window.setTimeout(() => setNotice(""), 2800);
       return;
     }
-    const additions = availableSizes.flatMap((size) => {
+    const sizes = sizesFor(product);
+    const additions = sizes.flatMap((size) => {
       const quantity = draftQuantities[quantityKey(product.id, modelIndex, size)] ?? 0;
       return quantity > 0 ? [{ productId: product.id, modelIndex, quantity, size }] : [];
     });
@@ -231,7 +233,7 @@ export default function Home() {
     }, current));
     setDraftQuantities((current) => {
       const next = { ...current };
-      availableSizes.forEach((size) => { delete next[quantityKey(product.id, modelIndex, size)]; });
+      sizes.forEach((size) => { delete next[quantityKey(product.id, modelIndex, size)]; });
       return next;
     });
     setNotice(`${additions.reduce((total, line) => total + line.quantity, 0)} peça(s) adicionada(s) ao carrinho.`);

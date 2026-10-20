@@ -27,15 +27,17 @@ export const categories = [
 
 // As galerias de cada produto são definidas no mapeamento data/product-images.ts.
 const clothingSizes = ["P", "M", "G"];
+const sweatpantsSizes = ["M", "G"];
+const technicalBermudaSizes = ["P", "M", "G", "G1", "G2", "G3", "G4"];
 
 export const products: Product[] = [
   { id: "calca-jeans", categoryId: "calcas", name: "Calça jeans", price: 105, images: productImages["calca-jeans"], sizes: clothingSizes },
   { id: "calca-social", categoryId: "calcas", name: "Calça social", price: 105, images: productImages["calca-social"], sizes: clothingSizes },
   { id: "calca-feminina", categoryId: "calcas", name: "Calça feminina", price: 105, images: productImages["calca-feminina"], sizes: clothingSizes },
-  { id: "calca-de-moletom", categoryId: "calcas", name: "Calça de moletom", price: 65, images: productImages["calca-de-moletom"], sizes: clothingSizes },
+  { id: "calca-de-moletom", categoryId: "calcas", name: "Calça de moletom", price: 65, images: productImages["calca-de-moletom"], sizes: sweatpantsSizes },
   { id: "bermuda-de-sarja", categoryId: "bermudas-shorts", name: "Bermuda de sarja", price: 75, images: productImages["bermuda-de-sarja"], sizes: clothingSizes },
   { id: "short-de-sarja", categoryId: "bermudas-shorts", name: "Short de sarja", price: 65, images: productImages["short-de-sarja"], sizes: clothingSizes },
-  { id: "bermuda-tecnologica", categoryId: "bermudas-shorts", name: "Bermuda tecnológica", price: 59, images: productImages["bermuda-tecnologica"], sizes: clothingSizes },
+  { id: "bermuda-tecnologica", categoryId: "bermudas-shorts", name: "Bermuda tecnológica", price: 59, images: productImages["bermuda-tecnologica"], sizes: technicalBermudaSizes },
   { id: "bermuda-acetinada", categoryId: "bermudas-shorts", name: "Bermuda acetinada", price: 85, images: productImages["bermuda-acetinada"], sizes: clothingSizes },
   { id: "camiseta-suedini", categoryId: "camisetas-camisas", name: "Camiseta Suedini", price: 57, images: productImages["camiseta-suedini"], sizes: clothingSizes },
   { id: "camiseta-peruana", categoryId: "camisetas-camisas", name: "Camiseta peruana", price: 55, images: productImages["camiseta-peruana"], sizes: clothingSizes },
