@@ -28,13 +28,14 @@ export const categories = [
 // As galerias de cada produto são definidas no mapeamento data/product-images.ts.
 const clothingSizes = ["P", "M", "G"];
 const sweatpantsSizes = ["M", "G"];
+const pantsSizes = ["38", "40", "42", "44", "46", "48"];
 const otherBermudaSizes = ["38", "40", "42", "44", "46", "48"];
 const technicalBermudaSizes = ["P", "M", "G", "G1", "G2", "G3", "G4"];
 
 export const products: Product[] = [
-  { id: "calca-jeans", categoryId: "calcas", name: "Calça jeans", price: 105, images: productImages["calca-jeans"], sizes: clothingSizes },
-  { id: "calca-social", categoryId: "calcas", name: "Calça social", price: 105, images: productImages["calca-social"], sizes: clothingSizes },
-  { id: "calca-feminina", categoryId: "calcas", name: "Calça feminina", price: 105, images: productImages["calca-feminina"], sizes: clothingSizes },
+  { id: "calca-jeans", categoryId: "calcas", name: "Calça jeans", price: 105, images: productImages["calca-jeans"], sizes: pantsSizes },
+  { id: "calca-social", categoryId: "calcas", name: "Calça social", price: 105, images: productImages["calca-social"], sizes: pantsSizes },
+  { id: "calca-feminina", categoryId: "calcas", name: "Calça feminina", price: 105, images: productImages["calca-feminina"], sizes: pantsSizes },
   { id: "calca-de-moletom", categoryId: "calcas", name: "Calça de moletom", price: 65, images: productImages["calca-de-moletom"], sizes: sweatpantsSizes },
   { id: "bermuda-de-sarja", categoryId: "bermudas-shorts", name: "Bermuda de sarja", price: 75, images: productImages["bermuda-de-sarja"], sizes: otherBermudaSizes },
   { id: "short-de-sarja", categoryId: "bermudas-shorts", name: "Short de sarja", price: 65, images: productImages["short-de-sarja"], sizes: otherBermudaSizes },
