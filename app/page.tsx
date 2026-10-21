@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { categories, products, store, type Product } from "@/data/products";
 
 type CartLine = { productId: string; modelIndex: number; quantity: number; size: string };
+type CouponCode = "pulso5" | "influ10";
 type IconName = "search" | "bag" | "menu" | "close" | "arrow" | "image" | "spark" | "layers" | "chat" | "headset" | "plus" | "minus" | "trash" | "instagram" | "external" | "check";
 
 const iconShapes: Record<IconName, ReactNode> = {
@@ -39,6 +40,14 @@ const quantityKey = (productId: string, modelIndex: number, size: string) => `${
 const wholesaleThreshold = 4;
 const wholesaleDiscount = 5;
 const discountedPrice = (price: number) => Math.max(0, price - wholesaleDiscount);
+const couponDefinitions: Record<CouponCode, { percent: number; expiresAt: number | null }> = {
+  pulso5: { percent: 5, expiresAt: new Date("2026-10-24T02:41:25.000Z").getTime() },
+  influ10: { percent: 10, expiresAt: null },
+};
+const couponExpiryLabel = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo",
+}).format(couponDefinitions.pulso5.expiresAt!);
+const isCouponCode = (value: string): value is CouponCode => value === "pulso5" || value === "influ10";
 const categoryPreviewProducts: Record<string, string> = {
   calcas: "calca-jeans",
   "bermudas-shorts": "short-de-sarja",
@@ -131,6 +140,9 @@ export default function Home() {
   const [modelsDialogProduct, setModelsDialogProduct] = useState<Product | null>(null);
   const [observations, setObservations] = useState("");
   const [notice, setNotice] = useState("");
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCouponCode, setAppliedCouponCode] = useState<CouponCode | null>(null);
+  const [couponMessage, setCouponMessage] = useState("");
 
   useEffect(() => {
     try {
@@ -140,6 +152,13 @@ export default function Home() {
         return product && Number.isInteger(line.quantity) && line.quantity > 0 && Number.isInteger(line.modelIndex) && line.modelIndex >= 0 && line.modelIndex < (product.images?.length ?? 0) && sizesFor(product).some((size) => size === line.size);
       }) : [];
       setCart(valid);
+      const savedCoupon = window.localStorage.getItem("pulso-demo-coupon") || "";
+      if (isCouponCode(savedCoupon) && (!couponDefinitions[savedCoupon].expiresAt || Date.now() < couponDefinitions[savedCoupon].expiresAt!)) {
+        setAppliedCouponCode(savedCoupon);
+        setCouponInput(savedCoupon);
+      } else {
+        window.localStorage.removeItem("pulso-demo-coupon");
+      }
     } catch { setCart([]); }
     setHydrated(true);
   }, []);
@@ -147,6 +166,29 @@ export default function Home() {
   useEffect(() => {
     if (hydrated) window.localStorage.setItem("pulso-demo-cart", JSON.stringify(cart));
   }, [cart, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (appliedCouponCode) window.localStorage.setItem("pulso-demo-coupon", appliedCouponCode);
+    else window.localStorage.removeItem("pulso-demo-coupon");
+  }, [appliedCouponCode, hydrated]);
+
+  useEffect(() => {
+    if (!appliedCouponCode) return;
+    const expiresAt = couponDefinitions[appliedCouponCode].expiresAt;
+    if (!expiresAt) return;
+    const remaining = expiresAt - Date.now();
+    if (remaining <= 0) {
+      setAppliedCouponCode(null);
+      setCouponMessage("O cupom PULSO5 expirou.");
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      setAppliedCouponCode(null);
+      setCouponMessage("O cupom PULSO5 expirou.");
+    }, remaining);
+    return () => window.clearTimeout(timeout);
+  }, [appliedCouponCode]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -189,6 +231,11 @@ export default function Home() {
     return sum + Math.min(wholesaleDiscount, product?.price || 0) * line.quantity;
   }, 0) : 0;
   const subtotal = originalSubtotal - totalSavings;
+  const appliedCoupon = appliedCouponCode ? couponDefinitions[appliedCouponCode] : null;
+  const couponDiscount = appliedCoupon && (!appliedCoupon.expiresAt || Date.now() < appliedCoupon.expiresAt)
+    ? Math.round(subtotal * appliedCoupon.percent) / 100
+    : 0;
+  const finalTotal = Math.max(0, subtotal - couponDiscount);
 
   const scrollTo = (id: string) => {
     setMenuOpen(false);
@@ -243,6 +290,29 @@ export default function Home() {
   const changeQuantity = (key: string, amount: number) => setCart((current) => current.map((line) => lineKey(line) === key ? { ...line, quantity: Math.max(1, line.quantity + amount) } : line));
   const removeLine = (key: string) => setCart((current) => current.filter((line) => lineKey(line) !== key));
 
+  const applyCoupon = () => {
+    const code = couponInput.trim().toLowerCase();
+    if (!isCouponCode(code)) {
+      setCouponMessage("Cupom inválido. Confira o código e tente novamente.");
+      return;
+    }
+    const coupon = couponDefinitions[code];
+    if (coupon.expiresAt && Date.now() >= coupon.expiresAt) {
+      setAppliedCouponCode(null);
+      setCouponMessage("O cupom PULSO5 expirou.");
+      return;
+    }
+    setAppliedCouponCode(code);
+    setCouponMessage(code === "pulso5"
+      ? `Cupom PULSO5 aplicado: 5% de desconto até ${couponExpiryLabel}.`
+      : "Cupom INFLU10 aplicado: 10% de desconto, sem prazo de validade.");
+  };
+
+  const removeCoupon = () => {
+    setAppliedCouponCode(null);
+    setCouponMessage("Cupom removido.");
+  };
+
   const checkout = () => {
     if (!cart.length) return;
     const detail = cart.map((line) => {
@@ -251,7 +321,10 @@ export default function Home() {
       const model = `Modelo ${String(line.modelIndex + 1).padStart(2, "0")}`;
       return `- ${product.name}\n  ${model} · Tamanho: ${line.size}\n  Quantidade: ${line.quantity}\n  Preço original por unidade: ${money(product.price)}\n  Preço por unidade com desconto: ${money(unit)}\n  Subtotal: ${money(unit * line.quantity)}`;
     }).join("\n\n");
-    const message = `Olá! Gostaria de fazer um pedido na ${store.name}.\n\nMeu pedido:\n\n${detail}\n\nQuantidade total: ${cartCount} peça(s)\nSubtotal original: ${money(originalSubtotal)}\nDesconto de atacado: ${money(totalSavings)}\nTotal final: ${money(subtotal)}\n\nObservações: ${observations.trim() || "(escreva aqui, se desejar)"}\n\nGostaria de confirmar a disponibilidade e as condições de compra.`;
+    const couponSummary = appliedCouponCode
+      ? `Cupom aplicado: ${appliedCouponCode.toUpperCase()} (${appliedCoupon?.percent ?? 0}%)\nDesconto do cupom: ${money(couponDiscount)}`
+      : "Cupom aplicado: nenhum";
+    const message = `Olá! Gostaria de fazer um pedido na ${store.name}.\n\nMeu pedido:\n\n${detail}\n\nQuantidade total: ${cartCount} peça(s)\nSubtotal original: ${money(originalSubtotal)}\nDesconto de atacado: ${money(totalSavings)}\n${couponSummary}\nTotal final: ${money(finalTotal)}\n\nObservações: ${observations.trim() || "(escreva aqui, se desejar)"}\n\nGostaria de confirmar a disponibilidade e as condições de compra.`;
     window.open(`${store.whatsapp}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   };
 
@@ -269,6 +342,7 @@ export default function Home() {
           </nav>
           <div className="nav-actions">
             <button className="icon-button search-button" onClick={() => setSearchOpen((open) => !open)} aria-label={searchOpen ? "Fechar busca" : "Buscar produtos"}><Icon name={searchOpen ? "close" : "search"} /></button>
+            <a className="whatsapp-nav-button" href={store.whatsapp} target="_blank" rel="noopener noreferrer" aria-label="Falar diretamente com a PULSO° pelo WhatsApp"><Icon name="chat" size={17} /><span>WhatsApp</span></a>
             <button className="icon-button cart-trigger" onClick={() => setCartOpen(true)} aria-label={`Abrir carrinho, ${cartCount} itens`}><Icon name="bag" /><span className="cart-count">{cartCount}</span></button>
             <button className="icon-button menu-button" onClick={() => setMenuOpen((open) => !open)} aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}><Icon name={menuOpen ? "close" : "menu"} /></button>
           </div>
@@ -377,8 +451,15 @@ export default function Home() {
               return <article className="cart-item" key={key}><div className="cart-thumb">{selectedImage ? <Image src={selectedImage} alt={`${product.name}, ${options}`} fill sizes="76px" /> : <Icon name="image" size={22} />}</div><div className="cart-item-info"><p className="eyebrow">{categories.find((category) => category.id === product.categoryId)?.name}</p><h3>{product.name}</h3><p>{options}</p>{wholesaleActive ? <del className="cart-original-subtotal">{money(product.price * line.quantity)}</del> : null}<strong>{money(unit * line.quantity)} <small>subtotal</small></strong><p className="cart-unit-price">Unitário: {wholesaleActive ? <><del>{money(product.price)}</del> <b>{money(unit)}</b> com desconto</> : money(product.price)}</p><div className="quantity-control"><button onClick={() => changeQuantity(key, -1)} aria-label={`Diminuir quantidade de ${product.name}, ${options}`}><Icon name="minus" size={14} /></button><span>{line.quantity}</span><button onClick={() => changeQuantity(key, 1)} aria-label={`Aumentar quantidade de ${product.name}, ${options}`}><Icon name="plus" size={14} /></button></div></div><button className="remove-item" onClick={() => removeLine(key)} aria-label={`Remover ${product.name}, ${options}`}><Icon name="trash" size={17} /></button></article>;
             })}</div>
             <p className={`wholesale-status ${wholesaleActive ? "is-active" : ""}`}>{wholesaleActive ? "Preço de atacado ativado! Você economiza R$ 5,00 por peça." : `A partir de ${wholesaleThreshold} peças, você economiza R$ 5,00 por unidade.`}</p>
+            <form className="coupon-form" onSubmit={(event) => { event.preventDefault(); applyCoupon(); }}>
+              <label htmlFor="coupon-code">Cupom de desconto</label>
+              <div className="coupon-input-row"><input id="coupon-code" type="text" value={couponInput} onChange={(event) => setCouponInput(event.target.value)} placeholder="Digite seu cupom" autoComplete="off" autoCapitalize="none" /><button type="submit">Aplicar</button></div>
+              <p className="coupon-help">PULSO5: 5% até {couponExpiryLabel} · INFLU10: 10%, sem prazo.</p>
+              {couponMessage ? <p className="coupon-message" role="status" aria-live="polite">{couponMessage}</p> : null}
+              {appliedCouponCode ? <button className="coupon-remove" type="button" onClick={removeCoupon}>Remover cupom</button> : null}
+            </form>
             <label className="observations-label" htmlFor="order-notes">Observações para a loja</label><textarea id="order-notes" value={observations} onChange={(event) => setObservations(event.target.value)} placeholder="Escreva aqui, se desejar" rows={3} />
-            <div className="subtotal-row"><span>Subtotal original</span><strong>{money(originalSubtotal)}</strong></div><div className="subtotal-row pieces-row"><span>Quantidade total</span><strong>{cartCount} peça(s)</strong></div><div className="subtotal-row savings-row"><span>Desconto aplicado</span><strong>{money(totalSavings)}</strong></div><div className="subtotal-row final-total"><span>Total final</span><strong>{money(subtotal)}</strong></div><p className="subtotal-caption">Confirme disponibilidade e condições com a loja pelo WhatsApp.</p>
+            <div className="subtotal-row"><span>Subtotal original</span><strong>{money(originalSubtotal)}</strong></div><div className="subtotal-row pieces-row"><span>Quantidade total</span><strong>{cartCount} peça(s)</strong></div><div className="subtotal-row savings-row"><span>Desconto de atacado</span><strong>{money(totalSavings)}</strong></div><div className="subtotal-row coupon-savings-row"><span>Desconto do cupom</span><strong>{money(couponDiscount)}</strong></div><div className="subtotal-row final-total"><span>Total final</span><strong>{money(finalTotal)}</strong></div><p className="subtotal-caption">Confirme disponibilidade e condições com a loja pelo WhatsApp.</p>
             <button className="button button-dark checkout-button" onClick={checkout}>FINALIZAR PEDIDO PELO WHATSAPP <Icon name="arrow" size={17} /></button>
             <button className="continue-button" onClick={() => setCartOpen(false)}>CONTINUAR EXPLORANDO</button>
           </> : <div className="empty-cart"><div className="empty-bag"><Icon name="bag" size={28} /></div><h3>Seu carrinho está vazio.</h3><p>Escolha uma peça da coleção para adicioná-la ao carrinho.</p><button className="button button-dark" onClick={() => { setCartOpen(false); scrollTo("colecao"); }}>EXPLORAR COLEÇÃO <Icon name="arrow" size={16} /></button></div>}
