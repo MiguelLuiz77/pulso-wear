@@ -88,7 +88,7 @@ function ProductCard({ product, selectedModels, quantities, onSelectModel, onCha
   const modelLabel = (index: number) => `Modelo ${String(index + 1).padStart(2, "0")}`;
   return (
     <article className="product-card">
-      <div className="product-photo">{images[displayedImageIndex] ? <Image className="product-image" src={images[displayedImageIndex]} alt={`${product.name}, ${modelLabel(displayedImageIndex)}`} fill sizes="(max-width: 760px) 76vw, 278px" /> : <Placeholder label="FOTO REAL EM BREVE" />}</div>
+      <div className="product-photo">{images[displayedImageIndex] ? <Image className="product-image" src={images[displayedImageIndex]} alt={`${product.name}, ${modelLabel(displayedImageIndex)}`} fill sizes="(max-width: 760px) 76vw, 278px" /> : <Placeholder label="FOTO REAL EM BREVE" />}{product.availability === "coming-soon" ? <span className="product-status-badge">Em breve</span> : null}</div>
       <div className="product-gallery-controls" aria-label={`Galeria de ${product.name}`}>
         <button type="button" className="gallery-previous" aria-label={`Foto anterior de ${product.name}`} tabIndex={focusable ? 0 : -1} disabled={images.length < 2} onClick={() => changeImage(-1)}><Icon name="arrow" size={15} /></button>
         <span aria-live={focusable ? "polite" : undefined}>{images.length ? `${hasModel ? modelLabel(displayedImageIndex) : "Escolha um modelo"} · ${String(displayedImageIndex + 1).padStart(2, "0")} / ${String(images.length).padStart(2, "0")}` : "FOTO EM BREVE"}</span>
@@ -97,6 +97,7 @@ function ProductCard({ product, selectedModels, quantities, onSelectModel, onCha
       <div className="product-info">
         <p className="eyebrow product-category">{category}</p>
         <h3>{product.name}</h3>
+        {product.availability === "coming-soon" ? <p className="product-availability" role="status">Em breve</p> : <>
         <p className="product-price">{money(product.price)}</p>
         <p className="wholesale-hint">Compre 4 peças ou mais e pague R$ 5,00 a menos por peça.</p>
         <div className="model-picker">
@@ -122,6 +123,7 @@ function ProductCard({ product, selectedModels, quantities, onSelectModel, onCha
           })}</div> : <p className="choose-model-note">Escolha um modelo.</p>}
         </div>
         <button className="button button-dark add-button" type="button" tabIndex={focusable ? 0 : -1} onClick={() => onAdd(product)}>ADICIONAR AO CARRINHO <Icon name="plus" size={16} /></button>
+        </>}
       </div>
     </article>
   );
@@ -149,7 +151,7 @@ export default function Home() {
       const saved = JSON.parse(window.localStorage.getItem("pulso-demo-cart") || "[]") as CartLine[];
       const valid = Array.isArray(saved) ? saved.filter((line) => {
         const product = products.find((item) => item.id === line.productId);
-        return product && Number.isInteger(line.quantity) && line.quantity > 0 && Number.isInteger(line.modelIndex) && line.modelIndex >= 0 && line.modelIndex < (product.images?.length ?? 0) && sizesFor(product).some((size) => size === line.size);
+        return product && product.availability !== "coming-soon" && Number.isInteger(line.quantity) && line.quantity > 0 && Number.isInteger(line.modelIndex) && line.modelIndex >= 0 && line.modelIndex < (product.images?.length ?? 0) && sizesFor(product).some((size) => size === line.size);
       }) : [];
       setCart(valid);
       const savedCoupon = window.localStorage.getItem("pulso-demo-coupon") || "";
@@ -258,6 +260,7 @@ export default function Home() {
   };
 
   const addToCart = (product: Product) => {
+    if (product.availability === "coming-soon") return;
     const modelIndex = product.images?.length === 1 ? 0 : selectedModels[product.id];
     if (modelIndex === undefined || modelIndex < 0 || modelIndex >= (product.images?.length ?? 0)) {
       setNotice("Escolha um modelo para continuar.");
