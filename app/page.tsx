@@ -454,7 +454,6 @@ export default function Home() {
             <form className="coupon-form" onSubmit={(event) => { event.preventDefault(); applyCoupon(); }}>
               <label htmlFor="coupon-code">Cupom de desconto</label>
               <div className="coupon-input-row"><input id="coupon-code" type="text" value={couponInput} onChange={(event) => setCouponInput(event.target.value)} placeholder="Digite seu cupom" autoComplete="off" autoCapitalize="none" /><button type="submit">Aplicar</button></div>
-              <p className="coupon-help">PULSO5: 5% até {couponExpiryLabel} · INFLU10: 10%, sem prazo.</p>
               {couponMessage ? <p className="coupon-message" role="status" aria-live="polite">{couponMessage}</p> : null}
               {appliedCouponCode ? <button className="coupon-remove" type="button" onClick={removeCoupon}>Remover cupom</button> : null}
             </form>
