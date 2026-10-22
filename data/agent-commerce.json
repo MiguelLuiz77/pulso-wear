@@ -1,0 +1,21 @@
+{
+  "wholesale": { "minimumPieces": 4, "discountPerPieceCents": 500 },
+  "shippingByStateCents": {
+    "SP": 2000,
+    "RJ": 2500,
+    "MG": 2500,
+    "ES": 2800,
+    "PR": 2800,
+    "SC": 3000,
+    "RS": 3200,
+    "DF": 3000,
+    "GO": 3000
+  },
+  "postingDeadlineDays": 3,
+  "coupons": {
+    "pulso5": { "percent": 5, "expiresAt": "2026-10-24T02:41:25.000Z" },
+    "influ10": { "percent": 10, "expiresAt": null }
+  },
+  "pixKey": "69.565.840/0001-06",
+  "storeWhatsApp": "5512997537258"
+}

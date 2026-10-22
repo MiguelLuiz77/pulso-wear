@@ -1,0 +1,20 @@
+[
+  { "id": "calca-jeans", "categoryId": "calcas", "name": "Calça jeans", "aliases": ["calça jeans", "calças jeans", "jeans"], "priceCents": 10500, "sizes": ["38", "40", "42", "44", "46", "48"] },
+  { "id": "calca-social", "categoryId": "calcas", "name": "Calça social", "aliases": ["calça social", "calças sociais"], "priceCents": 10500, "sizes": ["38", "40", "42", "44", "46", "48"] },
+  { "id": "calca-feminina", "categoryId": "calcas", "name": "Calça feminina", "aliases": ["calça feminina", "calças femininas"], "priceCents": 10500, "sizes": ["38", "40", "42", "44", "46", "48"], "availability": "coming-soon" },
+  { "id": "calca-de-moletom", "categoryId": "calcas", "name": "Calça de moletom", "aliases": ["calça moletom", "calça de moletom"], "priceCents": 6500, "sizes": ["M", "G"] },
+  { "id": "bermuda-de-sarja", "categoryId": "bermudas-shorts", "name": "Bermuda de sarja", "aliases": ["bermuda sarja", "bermuda de sarja"], "priceCents": 7500, "sizes": ["38", "40", "42", "44", "46", "48"] },
+  { "id": "short-de-sarja", "categoryId": "bermudas-shorts", "name": "Short de sarja", "aliases": ["short sarja", "short de sarja"], "priceCents": 6500, "sizes": ["38", "40", "42", "44", "46", "48"] },
+  { "id": "bermuda-tecnologica", "categoryId": "bermudas-shorts", "name": "Bermuda tecnológica", "aliases": ["bermuda tecnologica", "bermuda tecnológica"], "priceCents": 5900, "sizes": ["P", "M", "G", "G1", "G2", "G3", "G4"] },
+  { "id": "bermuda-acetinada", "categoryId": "bermudas-shorts", "name": "Bermuda acetinada", "aliases": ["bermuda acetinada"], "priceCents": 8500, "sizes": ["38", "40", "42", "44", "46", "48"] },
+  { "id": "camiseta-suedini", "categoryId": "camisetas-camisas", "name": "Camiseta Suedini", "aliases": ["suedini", "camiseta suedini"], "priceCents": 5700, "sizes": ["P", "M", "G"] },
+  { "id": "camiseta-peruana", "categoryId": "camisetas-camisas", "name": "Camiseta peruana", "aliases": ["camiseta peruana"], "priceCents": 5500, "sizes": ["P", "M", "G"] },
+  { "id": "camiseta-wafers", "categoryId": "camisetas-camisas", "name": "Camiseta Wafers", "aliases": ["wafer", "wafers", "camiseta wafer"], "priceCents": 5900, "sizes": ["P", "M", "G"] },
+  { "id": "camiseta-plus-size", "categoryId": "camisetas-camisas", "name": "Camiseta plus size", "aliases": ["plus size", "camiseta plus size"], "priceCents": 6500, "sizes": ["P", "M", "G"] },
+  { "id": "polo-piquet-duplo", "categoryId": "polos", "name": "Polo piquet duplo", "aliases": ["polo piquet duplo", "polo piquet duplo com elastano"], "priceCents": 7500, "sizes": ["P", "M", "G"] },
+  { "id": "polo-peruana", "categoryId": "polos", "name": "Polo peruana", "aliases": ["polo peruana"], "priceCents": 7000, "sizes": ["P", "M", "G"] },
+  { "id": "bobojaco", "categoryId": "moletons-frio", "name": "Bobojaco", "aliases": ["bobojaco"], "priceCents": 13000, "sizes": ["P", "M", "G"] },
+  { "id": "sueter", "categoryId": "moletons-frio", "name": "Suéter", "aliases": ["sueter", "suéter", "sueters", "suéters"], "priceCents": 9500, "sizes": ["P", "M", "G"] },
+  { "id": "moletom-de-tres-cabos", "categoryId": "moletons-frio", "name": "Moletom de três cabos", "aliases": ["moletom tres cabos", "moletom de três cabos"], "priceCents": 10500, "sizes": ["P", "M", "G"] },
+  { "id": "cuecas", "categoryId": "roupas-intimas", "name": "Cuecas", "aliases": ["cueca", "cuecas"], "priceCents": 3300, "sizes": ["P", "M", "G"] }
+]

@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build --webpack",
-    "start": "next start"
+    "start": "next start",
+    "test": "node --experimental-strip-types --test tests/pulso-agent.test.ts"
   },
   "dependencies": {
     "next": "latest",
